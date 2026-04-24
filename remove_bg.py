@@ -74,6 +74,8 @@ def detect_hardware_backend() -> tuple[str, list[str]]:
         available = ort.get_available_providers()
         if "CUDAExecutionProvider" in available:
             return "cuda", ["CUDAExecutionProvider", "CPUExecutionProvider"]
+        if "ROCMExecutionProvider" in available:
+            return "rocm", ["ROCMExecutionProvider", "CPUExecutionProvider"]
         if "DmlExecutionProvider" in available:
             return "directml", ["DmlExecutionProvider", "CPUExecutionProvider"]
     except Exception:

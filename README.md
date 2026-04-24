@@ -72,6 +72,14 @@ pip install onnxruntime-silicon
 pip install "rembg[gpu]" pillow
 ```
 
+**Linux with AMD GPU — enables ROCm acceleration:**
+```bash
+# ROCm 6.x must be installed on the host first: https://rocm.docs.amd.com
+pip install "rembg[cpu]" pillow
+pip uninstall onnxruntime -y
+pip install onnxruntime-rocm
+```
+
 **Windows (CPU only):**
 ```batch
 pip install rembg pillow
@@ -170,8 +178,49 @@ Exit code is `0` on success, `1` on any error.
 |---|---|---|
 | `coreml` | macOS arm64 | Apple Neural Engine / Metal |
 | `cuda` | Linux, Windows | NVIDIA GPU via CUDA |
+| `rocm` | Linux | AMD GPU via ROCm |
 | `directml` | Windows | AMD / Intel GPU via DirectML |
 | `cpu` | All platforms | CPU fallback |
+
+---
+
+## Best Setup for CPU-Only Users
+
+If you have no dedicated GPU, these steps will get the best possible performance from your CPU:
+
+**1. Install the optimised ONNX Runtime build for your CPU:**
+
+```bash
+# All platforms — replaces the generic build with one tuned for your CPU's SIMD/AVX instructions
+pip uninstall onnxruntime -y
+pip install onnxruntime   # always grab the latest; newer builds include AVX-512 and ARM NEON paths
+```
+
+**2. Set the thread count to match your physical core count:**
+
+```bash
+# macOS / Linux — add to your shell profile (.zshrc / .bashrc) or set before invoking the script
+export OMP_NUM_THREADS=$(nproc)          # Linux
+export OMP_NUM_THREADS=$(sysctl -n hw.physicalcpu)  # macOS
+```
+
+```batch
+:: Windows — set in the same terminal before running
+set OMP_NUM_THREADS=8
+```
+
+> `nproc` returns logical cores (threads). Use `nproc --all` or check Task Manager for your physical core count. Setting `OMP_NUM_THREADS` above physical cores typically hurts performance due to context switching.
+
+**3. Use the default `u2net` model.** It is the fastest model and well-optimised for CPU inference. Only switch to `isnet-general-use` if quality is the priority and you can accept 2–3× longer processing time.
+
+**Expected CPU-only throughput (typical 12 MP JPEG):**
+
+| CPU Class | Approx. Inference Time |
+|---|---|
+| Modern laptop (8-core, e.g. Intel Core i7 12th gen) | ~3–5 s |
+| Desktop workstation (16-core, e.g. Ryzen 9 7900X) | ~1.5–3 s |
+| Entry-level / older laptop (4-core, e.g. Intel Core i5 8th gen) | ~8–15 s |
+| Raspberry Pi 4 / low-power ARM | ~30–60 s |
 
 ---
 

@@ -86,7 +86,7 @@ The tool writes **one JSON object to stdout** and exits. Nothing else is written
 | `status` | `"success"` \| `"error"` | Yes | Outcome |
 | `input_file` | string (abs path) | Yes | Resolved absolute path of the input |
 | `output_file` | string (abs path) | On success | Absolute path of the saved PNG |
-| `hardware_backend` | `"coreml"` \| `"cuda"` \| `"directml"` \| `"cpu"` | On success | Accelerator used for inference |
+| `hardware_backend` | `"coreml"` \| `"cuda"` \| `"rocm"` \| `"directml"` \| `"cpu"` | On success | Accelerator used for inference |
 | `inference_time_ms` | integer (ms) | On success | Wall-clock time of the `remove()` call only |
 | `file_size_kb` | float (KB) | On success | Size of the output PNG file |
 | `message` | string | On error | Error description |
@@ -101,8 +101,9 @@ The tool auto-detects the optimal backend — no configuration needed.
 |---|---|---|
 | macOS arm64 (Apple Silicon) | `coreml` | Requires `onnxruntime-silicon` installed in venv |
 | Linux / Windows with NVIDIA GPU | `cuda` | Requires `onnxruntime-gpu` installed in venv |
+| Linux with AMD GPU | `rocm` | Requires `onnxruntime-rocm` + ROCm 6.x host drivers |
 | Windows with AMD / Intel GPU | `directml` | Requires `onnxruntime-directml` installed in venv |
-| Any other platform | `cpu` | Always available, slowest |
+| Any other platform | `cpu` | Always available, slowest; tune with `OMP_NUM_THREADS` |
 
 ---
 
