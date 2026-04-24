@@ -1,6 +1,6 @@
-# Local AI Background Remover — CLI Edition
+# BG Remover — Local AI Background Removal CLI
 
-A local, offline background removal tool designed as a **seamless executor** for AI agentic workflows. Processes one image per invocation and returns a pure JSON response — no UI, no cloud, no API keys.
+A fast, offline CLI tool for removing image backgrounds using AI. Works for everyday human use and integrates cleanly into automated pipelines and AI workflows — no UI, no cloud, no API keys required.
 
 ---
 

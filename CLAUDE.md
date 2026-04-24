@@ -1,4 +1,4 @@
-# CLAUDE.md — Agent Integration Guide: Local Background Remover
+# CLAUDE.md — Agent Integration Guide: BG Remover CLI
 
 This file is the authoritative integration reference for AI agents and orchestrators that invoke `remove_bg.py` as a tool.
 
