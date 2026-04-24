@@ -7,20 +7,26 @@ A local, offline background removal tool designed as a **seamless executor** for
 ## Features
 
 - Removes image backgrounds entirely on-device using the `rembg` ONNX model
-- Auto-detects hardware and uses the fastest available accelerator (CoreML on Apple Silicon, CUDA on Linux/Windows with NVIDIA GPU, CPU everywhere else)
+- Auto-detects hardware and uses the fastest available accelerator (CoreML on Apple Silicon, CUDA on Linux/Windows with NVIDIA GPU, DirectML on Windows with AMD/Intel GPU, CPU everywhere else)
 - All output is **pure JSON to stdout** — machine-readable by design
 - Output is always saved as PNG to preserve transparency
 - Zero external network calls after first model download
 
 ---
 
-## Requirements
+## Minimum Specifications
 
-| Requirement | Version |
-|---|---|
-| Python | 3.10+ |
-| OS | macOS (Apple Silicon or Intel), Linux |
-| Disk space | ~180 MB for the default `u2net` model (downloaded once on first run) |
+| Component | Minimum | Recommended |
+|---|---|---|
+| **OS** | Windows 10 64-bit, macOS 12, Ubuntu 20.04 | Windows 11, macOS 13+, Ubuntu 22.04 |
+| **Python** | 3.10 | 3.11+ |
+| **CPU** | Any x86_64 or arm64 (2 cores) | 4+ cores |
+| **RAM** | 4 GB | 8 GB |
+| **Disk** | 500 MB free | 1 GB free |
+| **GPU** | Not required | NVIDIA (CUDA), Apple Silicon (CoreML), AMD/Intel (DirectML on Windows) |
+| **Internet** | Required once (model download ~170 MB) | — |
+
+> **RAM note:** The `u2net` model loads ~170 MB into RAM. On a 4 GB machine with other applications open, processing large images (4K+) may be slow. 8 GB is comfortable for typical photo sizes (up to ~20 MP).
 
 ---
 
@@ -31,29 +37,58 @@ A local, offline background removal tool designed as a **seamless executor** for
 **2. Create and activate a virtual environment:**
 
 ```bash
+# macOS / Linux
 python3 -m venv .venv
-source .venv/bin/activate        # macOS / Linux
-# .venv\Scripts\activate         # Windows
+source .venv/bin/activate
+
+# Windows (Command Prompt)
+python -m venv .venv
+.venv\Scripts\activate.bat
+
+# Windows (PowerShell)
+python -m venv .venv
+.venv\Scripts\Activate.ps1
 ```
 
-**3. Install dependencies:**
+> **Windows PowerShell note:** If you get an execution policy error, run:
+> `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
 
+**3. Install dependencies — pick your platform:**
+
+**macOS / Linux (CPU only — works everywhere):**
 ```bash
 pip install "rembg[cpu]" pillow
 ```
 
-**Apple Silicon (M1/M2/M3/M4) — recommended for best performance:**
-
+**Apple Silicon (M1/M2/M3/M4) — enables CoreML / Metal acceleration:**
 ```bash
 pip install "rembg[cpu]" pillow
 pip uninstall onnxruntime -y
-pip install onnxruntime-silicon   # enables CoreML / Metal acceleration
+pip install onnxruntime-silicon
 ```
 
-**Linux with NVIDIA GPU:**
-
+**Linux with NVIDIA GPU — enables CUDA acceleration:**
 ```bash
-pip install "rembg[gpu]" pillow   # pulls onnxruntime-gpu automatically
+pip install "rembg[gpu]" pillow
+```
+
+**Windows (CPU only):**
+```batch
+pip install rembg pillow
+```
+
+**Windows with NVIDIA GPU — enables CUDA acceleration:**
+```batch
+pip install rembg pillow
+pip uninstall onnxruntime -y
+pip install onnxruntime-gpu
+```
+
+**Windows with AMD or Intel GPU — enables DirectML acceleration:**
+```batch
+pip install rembg pillow
+pip uninstall onnxruntime -y
+pip install onnxruntime-directml
 ```
 
 ---
@@ -61,6 +96,10 @@ pip install "rembg[gpu]" pillow   # pulls onnxruntime-gpu automatically
 ## Usage
 
 ```bash
+# macOS / Linux
+python remove_bg.py -i <input_image> -o <output_path>
+
+# Windows
 python remove_bg.py -i <input_image> -o <output_path>
 ```
 
@@ -89,8 +128,11 @@ python remove_bg.py -i photo.jpg -o photo_nobg.png
 # High-quality model for a portrait
 python remove_bg.py -i portrait.jpg -o portrait_nobg.png --model u2net_human_seg
 
-# Absolute paths
-python remove_bg.py -i /Users/agyan/raw/product.jpg -o /Users/agyan/results/product.png
+# Absolute paths (macOS / Linux)
+python remove_bg.py -i /home/agyan/raw/product.jpg -o /home/agyan/results/product.png
+
+# Absolute paths (Windows)
+python remove_bg.py -i "C:\Users\agyan\Pictures\product.jpg" -o "C:\Users\agyan\results\product.png"
 ```
 
 ---
@@ -124,17 +166,19 @@ Exit code is `0` on success, `1` on any error.
 
 ### `hardware_backend` Values
 
-| Value | Meaning |
-|---|---|
-| `coreml` | Apple Silicon — CoreML / Metal (fastest on macOS arm64) |
-| `cuda` | NVIDIA GPU via CUDA |
-| `cpu` | CPU fallback (all platforms) |
+| Value | Platform | Accelerator |
+|---|---|---|
+| `coreml` | macOS arm64 | Apple Neural Engine / Metal |
+| `cuda` | Linux, Windows | NVIDIA GPU via CUDA |
+| `directml` | Windows | AMD / Intel GPU via DirectML |
+| `cpu` | All platforms | CPU fallback |
 
 ---
 
 ## Notes
 
-- The first run downloads the model weights (~170MB for `u2net`) to `~/.u2net/`. Subsequent runs are fully offline.
+- The first run downloads the model weights (~170 MB for `u2net`) to `~/.u2net/` (macOS/Linux) or `C:\Users\<you>\.u2net\` (Windows). Subsequent runs are fully offline.
 - The output directory is created automatically if it does not exist.
 - The output is always PNG regardless of the extension you specify in `--output`.
 - All stderr output from ONNX Runtime is suppressed so stdout remains clean JSON.
+- On Windows, use quoted paths when they contain spaces: `"C:\My Photos\image.jpg"`.

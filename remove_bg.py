@@ -71,8 +71,11 @@ def detect_hardware_backend() -> tuple[str, list[str]]:
 
     try:
         import onnxruntime as ort
-        if "CUDAExecutionProvider" in ort.get_available_providers():
+        available = ort.get_available_providers()
+        if "CUDAExecutionProvider" in available:
             return "cuda", ["CUDAExecutionProvider", "CPUExecutionProvider"]
+        if "DmlExecutionProvider" in available:
+            return "directml", ["DmlExecutionProvider", "CPUExecutionProvider"]
     except Exception:
         pass
 

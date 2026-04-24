@@ -21,6 +21,9 @@ Removes the background from a single image file and saves the result as a PNG wi
 ```bash
 # macOS / Linux
 /path/to/bg-remover/.venv/bin/python remove_bg.py -i image.jpg -o result.png
+
+# Windows
+C:\path\to\bg-remover\.venv\Scripts\python.exe remove_bg.py -i image.jpg -o result.png
 ```
 
 ---
@@ -83,7 +86,7 @@ The tool writes **one JSON object to stdout** and exits. Nothing else is written
 | `status` | `"success"` \| `"error"` | Yes | Outcome |
 | `input_file` | string (abs path) | Yes | Resolved absolute path of the input |
 | `output_file` | string (abs path) | On success | Absolute path of the saved PNG |
-| `hardware_backend` | `"coreml"` \| `"cuda"` \| `"cpu"` | On success | Accelerator used for inference |
+| `hardware_backend` | `"coreml"` \| `"cuda"` \| `"directml"` \| `"cpu"` | On success | Accelerator used for inference |
 | `inference_time_ms` | integer (ms) | On success | Wall-clock time of the `remove()` call only |
 | `file_size_kb` | float (KB) | On success | Size of the output PNG file |
 | `message` | string | On error | Error description |
@@ -98,6 +101,7 @@ The tool auto-detects the optimal backend — no configuration needed.
 |---|---|---|
 | macOS arm64 (Apple Silicon) | `coreml` | Requires `onnxruntime-silicon` installed in venv |
 | Linux / Windows with NVIDIA GPU | `cuda` | Requires `onnxruntime-gpu` installed in venv |
+| Windows with AMD / Intel GPU | `directml` | Requires `onnxruntime-directml` installed in venv |
 | Any other platform | `cpu` | Always available, slowest |
 
 ---
