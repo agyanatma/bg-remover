@@ -1,0 +1,11 @@
+# Core
+rembg[cpu]==2.0.57
+pillow>=10.0.0
+
+# On Apple Silicon (arm64 macOS), replace onnxruntime with the optimised build:
+#   pip uninstall onnxruntime -y
+#   pip install onnxruntime-silicon
+#
+# On Linux with NVIDIA GPU:
+#   pip uninstall onnxruntime -y
+#   pip install onnxruntime-gpu

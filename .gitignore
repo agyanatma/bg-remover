@@ -1,0 +1,19 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+
+# rembg model cache
+~/.u2net/
+
+# Images
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.bmp
+*.tiff
+*.gif
+
+# macOS
+.DS_Store
