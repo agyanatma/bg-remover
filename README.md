@@ -7,7 +7,7 @@ A fast, offline CLI tool for removing image backgrounds using AI. Works for ever
 ## Features
 
 - Removes image backgrounds entirely on-device using the `rembg` ONNX model
-- Auto-detects hardware and uses the fastest available accelerator (CoreML on Apple Silicon, CUDA on Linux/Windows with NVIDIA GPU, DirectML on Windows with AMD/Intel GPU, CPU everywhere else)
+- Auto-detects hardware and uses the fastest stable backend (CUDA/ROCm/DirectML when available, CPU everywhere else; CoreML is available as an opt-in on Apple Silicon)
 - All output is **pure JSON to stdout** — machine-readable by design
 - Output is always saved as PNG to preserve transparency
 - Zero external network calls after first model download
@@ -118,6 +118,7 @@ python remove_bg.py -i <input_image> -o <output_path>
 | `--input` | `-i` | Yes | Path to source image (JPEG, PNG, WEBP, BMP) |
 | `--output` | `-o` | Yes | Destination path for the result (always saved as `.png`) |
 | `--model` | | No | AI model to use (see table below, default: `u2net`) |
+| `--backend` | | No | ONNX backend/provider to use: `auto`, `cpu`, `coreml`, `cuda`, `rocm`, `directml` (default: `auto`) |
 
 ### Model Options
 
@@ -126,6 +127,7 @@ python remove_bg.py -i <input_image> -o <output_path>
 | `u2net` | Fast (~900ms) | Good | General purpose — **default** |
 | `u2net_human_seg` | Fast | Good | People and portraits only |
 | `isnet-general-use` | Slower (~2-3s) | High | Fine detail, hair, complex edges |
+| `birefnet-general-lite` | Slower | Highest for people | Portraits, full-body people, hairline edges |
 
 ### Examples
 
@@ -135,6 +137,9 @@ python remove_bg.py -i photo.jpg -o photo_nobg.png
 
 # High-quality model for a portrait
 python remove_bg.py -i portrait.jpg -o portrait_nobg.png --model u2net_human_seg
+
+# Best person model, forced CPU backend for stable Apple Silicon runs
+python remove_bg.py -i portrait.jpg -o portrait_nobg.png --model birefnet-general-lite --backend cpu
 
 # Absolute paths (macOS / Linux)
 python remove_bg.py -i /home/agyan/raw/product.jpg -o /home/agyan/results/product.png
@@ -176,7 +181,7 @@ Exit code is `0` on success, `1` on any error.
 
 | Value | Platform | Accelerator |
 |---|---|---|
-| `coreml` | macOS arm64 | Apple Neural Engine / Metal |
+| `coreml` | macOS arm64 | Apple Neural Engine / Metal, opt in with `--backend coreml` or `BG_REMOVER_ENABLE_COREML_AUTO=1` |
 | `cuda` | Linux, Windows | NVIDIA GPU via CUDA |
 | `rocm` | Linux | AMD GPU via ROCm |
 | `directml` | Windows | AMD / Intel GPU via DirectML |

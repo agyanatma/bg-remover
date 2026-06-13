@@ -13,7 +13,7 @@ Removes the background from a single image file and saves the result as a PNG wi
 ## Invocation
 
 ```
-<python_executable> remove_bg.py -i <input_path> -o <output_path> [--model <model_name>]
+<python_executable> remove_bg.py -i <input_path> -o <output_path> [--model <model_name>] [--backend <backend_name>]
 ```
 
 **Always use the venv Python, not the system Python:**
@@ -35,6 +35,7 @@ C:\path\to\bg-remover\.venv\Scripts\python.exe remove_bg.py -i image.jpg -o resu
 | `-i` / `--input` | Yes | string (path) | Absolute or relative path to the source image |
 | `-o` / `--output` | Yes | string (path) | Destination path. Extension is **always overridden to `.png`** |
 | `--model` | No | enum | AI model variant (default: `u2net`) |
+| `--backend` | No | enum | ONNX backend/provider (default: `auto`) |
 
 ### `--model` Values
 
@@ -96,15 +97,15 @@ The tool writes **one JSON object to stdout** and exits. Nothing else is written
 
 ## Hardware Backend Behavior
 
-The tool auto-detects the optimal backend — no configuration needed.
+The tool auto-detects the fastest stable backend. You can override with `--backend cpu|coreml|cuda|rocm|directml`.
 
-| Platform | Detected Backend | Notes |
+| Platform | Auto Backend | Notes |
 |---|---|---|
-| macOS arm64 (Apple Silicon) | `coreml` | Requires `onnxruntime-silicon` installed in venv |
+| macOS arm64 (Apple Silicon) | `cpu` | CoreML can hang with some rembg/ONNX Runtime combinations; opt in with `--backend coreml` or `BG_REMOVER_ENABLE_COREML_AUTO=1` |
 | Linux / Windows with NVIDIA GPU | `cuda` | Requires `onnxruntime-gpu` installed in venv |
 | Linux with AMD GPU | `rocm` | Requires `onnxruntime-rocm` + ROCm 6.x host drivers |
 | Windows with AMD / Intel GPU | `directml` | Requires `onnxruntime-directml` installed in venv |
-| Any other platform | `cpu` | Always available, slowest; tune with `OMP_NUM_THREADS` |
+| Any other platform | `cpu` | Always available; tune with `OMP_NUM_THREADS` |
 
 ---
 

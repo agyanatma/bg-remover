@@ -43,43 +43,70 @@ def _emit(payload: dict, exit_code: int = 0) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Hardware detection — YOUR CONTRIBUTION GOES HERE
+# Hardware/backend detection
 # ---------------------------------------------------------------------------
 
-def detect_hardware_backend() -> tuple[str, list[str]]:
+def _available_onnx_providers() -> list[str]:
+    """Return providers compiled into the installed ONNX Runtime package."""
+    try:
+        import onnxruntime as ort
+        return ort.get_available_providers()
+    except Exception:
+        return []
+
+
+def detect_hardware_backend(preferred_backend: str = "auto") -> tuple[str, list[str]]:
     """Return (backend_label, onnx_providers_list) for the current machine.
 
-    backend_label  — human/machine-readable string that ends up in the JSON
-                     response and (later) the analytics DB.
-    onnx_providers — ordered list passed directly to rembg's new_session().
-                     ONNX Runtime tries providers left-to-right and falls
-                     back automatically, so order matters.
+    `preferred_backend` may be one of: auto, cpu, coreml, cuda, rocm,
+    directml. Auto chooses the fastest stable provider known for the platform.
 
-    Platforms to handle:
-      - macOS arm64  → CoreML is fastest; fall back to CPU
-      - Linux/other  → probe for CUDA; fall back to CPU
-
-    TODO: implement this function.
-    The body below is a safe CPU-only placeholder so the script runs while
-    you fill in the real logic (5-10 lines).
+    Note for Apple Silicon: CoreML can be fast, but some rembg/ONNX Runtime
+    combinations hang indefinitely on full-size images. Auto therefore uses
+    CPU on macOS arm64 unless BG_REMOVER_ENABLE_COREML_AUTO=1 is set. You can
+    still opt into CoreML explicitly with `--backend coreml`.
     """
+    backend = preferred_backend.lower()
+    available = _available_onnx_providers()
     machine = platform.machine().lower()
     system = platform.system().lower()
 
-    if system == "darwin" and machine == "arm64":
-        return "coreml", ["CoreMLExecutionProvider", "CPUExecutionProvider"]
+    forced = {
+        "cpu": ("cpu", ["CPUExecutionProvider"]),
+        "coreml": ("coreml", ["CoreMLExecutionProvider", "CPUExecutionProvider"]),
+        "cuda": ("cuda", ["CUDAExecutionProvider", "CPUExecutionProvider"]),
+        "rocm": ("rocm", ["ROCMExecutionProvider", "CPUExecutionProvider"]),
+        "directml": ("directml", ["DmlExecutionProvider", "CPUExecutionProvider"]),
+    }
 
-    try:
-        import onnxruntime as ort
-        available = ort.get_available_providers()
-        if "CUDAExecutionProvider" in available:
-            return "cuda", ["CUDAExecutionProvider", "CPUExecutionProvider"]
-        if "ROCMExecutionProvider" in available:
-            return "rocm", ["ROCMExecutionProvider", "CPUExecutionProvider"]
-        if "DmlExecutionProvider" in available:
-            return "directml", ["DmlExecutionProvider", "CPUExecutionProvider"]
-    except Exception:
-        pass
+    if backend in forced:
+        label, providers = forced[backend]
+        primary = providers[0]
+        if primary != "CPUExecutionProvider" and available and primary not in available:
+            raise ValueError(
+                f"Requested backend '{backend}' is not available. "
+                f"Available ONNX providers: {', '.join(available)}"
+            )
+        return label, providers
+
+    if backend != "auto":
+        raise ValueError(f"Unknown backend: {preferred_backend}")
+
+    if "CUDAExecutionProvider" in available:
+        return "cuda", ["CUDAExecutionProvider", "CPUExecutionProvider"]
+    if "ROCMExecutionProvider" in available:
+        return "rocm", ["ROCMExecutionProvider", "CPUExecutionProvider"]
+    if "DmlExecutionProvider" in available:
+        return "directml", ["DmlExecutionProvider", "CPUExecutionProvider"]
+
+    coreml_auto_enabled = os.environ.get("BG_REMOVER_ENABLE_COREML_AUTO") == "1"
+    if (
+        system == "darwin"
+        and machine == "arm64"
+        and coreml_auto_enabled
+        and "CoreMLExecutionProvider" in available
+    ):
+        return "coreml", ["CoreMLExecutionProvider", "CPUExecutionProvider"]
 
     return "cpu", ["CPUExecutionProvider"]
 
@@ -165,13 +192,24 @@ def main() -> None:
     parser.add_argument("--model", default="u2net",
                         choices=["u2net", "u2net_human_seg", "isnet-general-use", "birefnet-general-lite"],
                         help="rembg model (default: u2net — fastest general-purpose; use birefnet-general-lite for humans)")
+    parser.add_argument("--backend", default="auto",
+                        choices=["auto", "cpu", "coreml", "cuda", "rocm", "directml"],
+                        help="ONNX backend/provider to use (default: auto; use cpu to avoid CoreML hangs on Apple Silicon)")
 
     args = parser.parse_args()
 
     input_path, output_path = _resolve_paths(args.input, args.output)
     _validate_input(input_path)
 
-    backend_label, providers = detect_hardware_backend()
+    try:
+        backend_label, providers = detect_hardware_backend(args.backend)
+    except ValueError as exc:
+        _emit({
+            "status": "error",
+            "message": str(exc),
+            "input_file": str(input_path),
+        }, exit_code=1)
+
     elapsed_ms = _run_inference(input_path, output_path, args.model, providers)
 
     file_size_kb = round(output_path.stat().st_size / 1024, 2)
