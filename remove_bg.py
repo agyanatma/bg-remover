@@ -163,8 +163,8 @@ def main() -> None:
     parser.add_argument("-o", "--output", required=True, metavar="PATH",
                         help="Destination path for the result (always saved as PNG)")
     parser.add_argument("--model", default="u2net",
-                        choices=["u2net", "u2net_human_seg", "isnet-general-use"],
-                        help="rembg model (default: u2net — fastest general-purpose)")
+                        choices=["u2net", "u2net_human_seg", "isnet-general-use", "birefnet-general-lite"],
+                        help="rembg model (default: u2net — fastest general-purpose; use birefnet-general-lite for humans)")
 
     args = parser.parse_args()
 

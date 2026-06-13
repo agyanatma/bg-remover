@@ -41,10 +41,11 @@ C:\path\to\bg-remover\.venv\Scripts\python.exe remove_bg.py -i image.jpg -o resu
 | Value | Use When |
 |---|---|
 | `u2net` | Default. General purpose, fastest (~900ms on M3). Use for products, objects, anything non-human. |
-| `u2net_human_seg` | Subject is a person or portrait. |
+| `u2net_human_seg` | Legacy/fast human segmentation fallback. Use only when BiRefNet Lite is unavailable. |
 | `isnet-general-use` | Fine edges matter (hair, fur, transparent objects). Slower (~2-3s). |
+| `birefnet-general-lite` | Default for human figures, portraits, full-body people, and hairline edges. Best quality/speed balance for people. |
 
-**Decision rule for agents:** default to `u2net`. Override to `u2net_human_seg` if you know the subject is a person. Override to `isnet-general-use` only when quality is explicitly required and latency is acceptable.
+**Decision rule for agents:** default to `u2net` for non-human subjects. If the image contains a human figure/person/portrait, use `birefnet-general-lite` by default. Override to `isnet-general-use` only for non-human fine-edge quality cases, or to `u2net_human_seg` only if BiRefNet Lite is unavailable.
 
 ---
 
